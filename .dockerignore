@@ -1,0 +1,36 @@
+# dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+
+# build
+dist
+coverage
+
+# git
+.git
+.gitignore
+
+# env
+.env
+.env.local
+.env.*.local
+
+# ide
+.vscode
+.idea
+
+# macos
+.DS_Store
+
+# logs
+logs
+*.log
+
+# tests
+coverage
+
+# misc
+tmp
+temp

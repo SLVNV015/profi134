@@ -1,0 +1,54 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq_prof
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_prof:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running"]
+      interval: 20s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+  redis:
+    image: redis:alpine
+    container_name: redis_prof
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_prof:/data
+
+  producer:
+    build:
+      context: .
+      dockerfile: apps/producer/dockerfile
+    container_name: producer_prof
+    ports: 
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  consumer:
+    build:
+      context: .
+      dockerfile: apps/consumer/dockerfile
+    container_name: consumer_prof
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  rabbitmq_prof:
+  redis_prof:
