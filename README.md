@@ -62,12 +62,18 @@ TELEGRAM_CHAT_ID=50908111
 make up
 ```
 
+```bash
+docker compose -env-file .env up -d --build
+```
 ---
 
 ## Остановка сервисов
 
 ```bash
-make down
+make stop
+```
+```bash
+docker compose stop
 ```
 
 ---
@@ -77,8 +83,13 @@ make down
 ```bash
 make restart
 ```
-
 ---
+
+# Документация свагер по умолчанию доступна по адресу:
+
+```txt
+http://localhost:3000/api
+```
 
 # RabbitMQ Management UI
 
@@ -93,16 +104,6 @@ http://localhost:15672
 ```txt
 login: guest
 password: guest
-```
-
----
-
-# API
-
-Producer API доступен:
-
-```txt
-http://localhost:3000
 ```
 
 ---
@@ -142,11 +143,11 @@ make clean
 ## Producer
 
 Producer:
-
-- сериализует события в JSON
-- присваивает UUID
+- Принимает некое событие с фронта, Correlation id не обязателен, если его нет то генерирует свое
 - отправляет сообщения в RabbitMQ
+- из базы только редис хранит 24 часа можно реализовать эндпоинт на попытки успешние и нет, что то тяжелее не хотелось нести
 - использует retry policy при network errors
+- используется emit с ack - то есть не ждем ответа от другого сервиса
 
 ---
 
@@ -155,10 +156,23 @@ Producer:
 Consumer:
 
 - получает события из RabbitMQ
-- выполняет обработку
+- выполняет обработку (timeout 500ms)
 - отправляет Telegram уведомления
 - использует manual ACK/NACK
 
+сообщение в телеграме выглядит просто:
+
+```txt
+Succes RabbitMq message recieved:
+id=b6aed855-b6e9-43b1-86c4-74ce9a37e677
+type=order.created
+correlationId=123e4567-e89b-12d3-a456-426655440001
+timestamp=Mon May 04 2026 13:22:00 GMT+0000 (Coordinated Universal Time)
+data={
+  "orderId": 1,
+  "userId": 1
+}
+```
 ### ACK
 
 Сообщение подтверждается:
@@ -174,6 +188,7 @@ channel.ack(message)
 ```ts
 channel.nack(message, false, false)
 ```
+то есть сейчас при emit и без реализованной dlx, то есть ни обратно в очередь не кидается ни в DLQ просто теряется по сути, но это же тестовое задание
 
 ---
 
@@ -206,29 +221,8 @@ Telegram Bot API
 
 # Тестирование
 
-## Unit tests
+Тестами ничего не покрыто ни юнит ни e2e
 
-```bash
-make test
-```
-
-## E2E tests
-
-```bash
-make test-e2e
-```
-
----
-
-# SOLID / Clean Architecture
-
-Проект придерживается:
-
-- SOLID principles
-- modular architecture
-- separation of concerns
-- dependency inversion
-- message-driven architecture
 
 ---
 
@@ -244,8 +238,3 @@ make test-e2e
 - Swagger documentation
 - Kubernetes deployment
 
----
-
-# Автор
-
-Test assignment implementation using NestJS microservices architecture.
