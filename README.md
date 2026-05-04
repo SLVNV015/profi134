@@ -227,14 +227,7 @@ Telegram Bot API
 ---
 
 # Возможные улучшения
-
 - Dead Letter Queue (DLQ)
-- Outbox Pattern
-- Distributed tracing
-- Prometheus metrics
-- OpenTelemetry
-- Circuit Breaker
-- Rate limiting
-- Swagger documentation
-- Kubernetes deployment
-
+- Более приличные логи
+- Тесты
+Остальное для тестового задания без пользы излишне
