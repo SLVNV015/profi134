@@ -14,6 +14,13 @@ async function bootstrap() {
     process.exit(1);
   }
 
+  // try {
+  //   await rmqSetup(rmqUrl);
+  //   logger.log('RabbitMQ setup completed');
+  // } catch (error) {
+  //   logger.error('Failed to setup RabbitMQ:', error);
+  // }
+
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,
     {
@@ -28,6 +35,16 @@ async function bootstrap() {
 
   app.useGlobalFilters(new RpcExceptionFilter());
 
+  process.on('SIGINT', async () => {
+    await app.close();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', async () => {
+    await app.close();
+    process.exit(0);
+  });
+
   process.on('unhandledRejection', (reason) => {
     logger.error(
       'Unhandled Rejection at:',
@@ -41,6 +58,8 @@ async function bootstrap() {
   });
 
   await app.listen();
-  logger.log(`Application starts listen RPC context`);
+  logger.log(
+    `Application starts listen RPC context (main.queue + dead.letter.queue)`,
+  );
 }
 bootstrap();

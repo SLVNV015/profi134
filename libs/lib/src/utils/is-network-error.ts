@@ -1,17 +1,10 @@
-const NETWORK_ERRORS = [
-  'ECONNREFUSED',
-  'ECONNRESET',
-  'ECONNABORTED',
-  'ENOTFOUND',
-  'ETIMEDOUT',
-  'EAI_FAIL',
-  'socket hang up',
-  'EPIPE',
-];
+import { isNetworkError as isNetworkErrorClassifier } from './error-classifier';
 
+/**
+ * @deprecated Use error-classifier.ts instead
+ * Kept for backward compatibility
+ */
 export function isNetworkError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    NETWORK_ERRORS.some((networkError) => error.message.includes(networkError))
-  );
+  return isNetworkErrorClassifier(error);
 }
+

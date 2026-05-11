@@ -14,10 +14,13 @@ export async function rmqSetup(url: string) {
     arguments: {
       'x-dead-letter-exchange': 'dlx.exchange',
       'x-dead-letter-routing-key': 'dead.letter',
-      'x-message-ttl': 30000,
     },
   });
   await channel.bindQueue('main.queue', 'main.exchange', 'event.process');
+
+  console.log('✓ RabbitMQ setup completed:');
+  console.log('  - dlx.exchange -> dead.letter.queue');
+  console.log('  - main.exchange -> main.queue (with DLX)');
 
   await channel.close();
   await connection.close();
@@ -25,13 +28,13 @@ export async function rmqSetup(url: string) {
 
 export const RmqOptParam = {
   queue: 'main.queue',
-  prefetchCount: 10,
   queueOptions: {
     durable: true,
-    // arguments: {
-    //   'x-dead-letter-exchange': 'dlx.exchange',
-    //   'x-dead-letter-routing-key': 'dead.letter',
-    //   'x-message-ttl': 30_000,
-    // },
+    arguments: {
+      'x-dead-letter-exchange': 'dlx.exchange',
+      'x-dead-letter-routing-key': 'dead.letter',
+      'x-message-ttl': 60_000,
+    },
   },
+  persistent: true,
 };
