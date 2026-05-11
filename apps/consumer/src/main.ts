@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { RpcExceptionFilter } from '@app/lib/filter/rpc-exception.filter';
+import { DlqModule } from './dlq/dlq.module';
 
 async function bootstrap() {
   const logger = new Logger('CONSUMER app');
@@ -14,12 +15,12 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  // try {
-  //   await rmqSetup(rmqUrl);
-  //   logger.log('RabbitMQ setup completed');
-  // } catch (error) {
-  //   logger.error('Failed to setup RabbitMQ:', error);
-  // }
+  try {
+    await rmqSetup(rmqUrl);
+  } catch (error) {
+    logger.error(error);
+    process.exit(1);
+  }
 
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,
@@ -33,7 +34,22 @@ async function bootstrap() {
     },
   );
 
+  const dlqListenApp =
+    await NestFactory.createMicroservice<MicroserviceOptions>(DlqModule, {
+      transport: Transport.RMQ,
+      options: {
+        urls: [rmqUrl],
+        noAck: false,
+        queue: 'main.queue.dead',
+        persistent: true,
+        queueOptions: {
+          durable: true,
+        },
+      },
+    });
+
   app.useGlobalFilters(new RpcExceptionFilter());
+  dlqListenApp.useGlobalFilters(new RpcExceptionFilter());
 
   process.on('SIGINT', async () => {
     await app.close();
@@ -58,6 +74,7 @@ async function bootstrap() {
   });
 
   await app.listen();
+  await dlqListenApp.listen();
   logger.log(
     `Application starts listen RPC context (main.queue + dead.letter.queue)`,
   );

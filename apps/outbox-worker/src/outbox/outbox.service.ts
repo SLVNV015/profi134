@@ -67,9 +67,10 @@ export class OutboxService {
   async markOneCompleted(id: string) {
     try {
       await this.pool.any(sql.type(outboxSchema)`
-                           DELETE FROM outbox
-                           WHERE id = ${id}
-                           `);
+                          UPDATE outbox
+                          SET status = 'SEND'
+                          WHERE id = ${id}
+                          `);
       this.logger.debug(`Deleted completed event: ${id}`);
     } catch (error) {
       this.logger.error(

@@ -1,28 +1,27 @@
 import * as amqp from 'amqplib';
 
+const MAIN_QUEUE = 'main.queue';
+const DLX_EXCHANGE = 'dlx.exchange';
+const DLQ_QUEUE = 'main.queue.dead';
+export const DEAD_LETTER_RK = 'dead.letter';
+
 export async function rmqSetup(url: string) {
   const connection = await amqp.connect(url);
   const channel = await connection.createChannel();
 
-  await channel.assertExchange('dlx.exchange', 'direct', { durable: true });
-  await channel.assertQueue('dead.letter.queue', { durable: true });
-  await channel.bindQueue('dead.letter.queue', 'dlx.exchange', 'dead.letter');
+  await channel.assertExchange(DLX_EXCHANGE, 'direct', { durable: true });
 
-  await channel.assertExchange('main.exchange', 'direct', { durable: true });
-  await channel.assertQueue('main.queue', {
+  await channel.assertQueue(DLQ_QUEUE, { durable: true });
+  await channel.bindQueue(DLQ_QUEUE, DLX_EXCHANGE, DEAD_LETTER_RK);
+  await channel.assertQueue(MAIN_QUEUE, {
     durable: true,
     arguments: {
-      'x-dead-letter-exchange': 'dlx.exchange',
-      'x-dead-letter-routing-key': 'dead.letter',
+      'x-dead-letter-exchange': DLX_EXCHANGE,
+      'x-dead-letter-routing-key': DEAD_LETTER_RK,
+      'x-message-ttl': 60000,
     },
   });
-  await channel.bindQueue('main.queue', 'main.exchange', 'event.process');
 
-  console.log('✓ RabbitMQ setup completed:');
-  console.log('  - dlx.exchange -> dead.letter.queue');
-  console.log('  - main.exchange -> main.queue (with DLX)');
-
-  await channel.close();
   await connection.close();
 }
 
@@ -31,9 +30,9 @@ export const RmqOptParam = {
   queueOptions: {
     durable: true,
     arguments: {
-      'x-dead-letter-exchange': 'dlx.exchange',
-      'x-dead-letter-routing-key': 'dead.letter',
-      'x-message-ttl': 60_000,
+      'x-dead-letter-exchange': DLX_EXCHANGE,
+      'x-dead-letter-routing-key': DEAD_LETTER_RK,
+      'x-message-ttl': 60000,
     },
   },
   persistent: true,

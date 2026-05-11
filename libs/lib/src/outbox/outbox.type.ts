@@ -13,7 +13,7 @@ export enum OutboxStatus {
   CREATED = 'CREATED',
   PROCESSING = 'PROCESSING',
   FAILED = 'FAILED',
-  COMPLETED = 'COMPLETED',
+  SEND = 'SEND',
 }
 
 export const outboxSchema = z.object({

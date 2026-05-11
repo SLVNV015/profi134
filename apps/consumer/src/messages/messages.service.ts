@@ -37,4 +37,16 @@ export class MessagesService {
       );
     }, 500);
   }
+
+  async processDeadLetter(event: EventMessage) {
+    const message = [
+      `DeadLetter RabbitMq message recieved:`,
+      `id=${event.id}`,
+      `type=${event.type}`,
+      `correlationId=${event.correlationId}`,
+      `timestamp=${new Date(event.timestamp)}`,
+      `data=${JSON.stringify(event.payload, null, 2)}`,
+    ];
+    await this.notifyService.notify(message.join('\n'));
+  }
 }
