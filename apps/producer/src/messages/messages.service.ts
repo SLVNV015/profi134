@@ -1,26 +1,15 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { SendMessageDto } from './dto/send-message.dto';
 import { randomUUID } from 'crypto';
-import { RmqProducer } from '../rmq/rmq.producer';
-import { IdepotencyService } from '../idepotency/idepotency.service';
 import { SendMessageResponseDto } from './dto/send-messge.response.dto';
-import { StorageService } from '../storage/storage.service';
 import { EventMessage } from '@app/lib/interfaces/event-message.interface';
+import { OutBoxService } from '../outbox/outbox.service';
 
 @Injectable()
 export class MessagesService {
   private readonly logger = new Logger(MessagesService.name);
 
-  constructor(
-    private readonly rmqProducer: RmqProducer,
-    private readonly idepotencyService: IdepotencyService,
-    private readonly storageService: StorageService,
-  ) {}
+  constructor(private readonly outboxServie: OutBoxService) {}
 
   async send(dto: SendMessageDto, correlationId: string) {
     const { type, payload } = dto;
@@ -30,29 +19,7 @@ export class MessagesService {
       correlationId = randomUUID().toString();
     }
 
-    const isExisting = await this.idepotencyService.getRecord(correlationId);
-    if (isExisting) {
-      this.logger.log(`Duplicate request: ${correlationId}`);
-      return {
-        correlationId,
-        eventId: isExisting.eventId!,
-        isChached: true,
-      } as SendMessageResponseDto;
-    }
-
-    const locked = await this.idepotencyService.acquireLock(correlationId);
-    if (!locked) {
-      throw new ConflictException(
-        'Request is processed, please try again later',
-      );
-    }
-
     const eventId = randomUUID().toString();
-    await this.idepotencyService.saveRecord(correlationId, {
-      eventId,
-      status: 'pending',
-      createdAt: Date.now(),
-    });
 
     try {
       const event: EventMessage = {
@@ -62,30 +29,15 @@ export class MessagesService {
         timestamp: Date.now(),
         payload,
       };
-      await this.rmqProducer.publish('event.process', event);
-
-      await this.idepotencyService.saveRecord(correlationId, {
-        eventId,
-        status: 'accepted',
-        createdAt: Date.now(),
-      });
-      await this.storageService.incrSucces();
-      this.logger.log(`Message sent: ${correlationId}`);
+      await this.outboxServie.saveEvent(event);
+      this.logger.log('Message saved');
       return {
         correlationId,
         eventId,
         isChached: false,
       } as SendMessageResponseDto;
     } catch (error) {
-      await this.idepotencyService.saveRecord(correlationId, {
-        eventId,
-        status: 'failed',
-        createdAt: Date.now(),
-      });
-      await this.storageService.incrFailure();
       throw error;
-    } finally {
-      await this.idepotencyService.releaseLock(correlationId);
     }
   }
 

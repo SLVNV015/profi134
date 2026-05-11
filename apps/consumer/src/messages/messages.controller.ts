@@ -23,4 +23,21 @@ export class MessagesController {
       channel.nack(originalMsg, false, false);
     }
   }
+
+  // @EventPattern('dead.letter')
+  // async handleDeadLetter(
+  //   @Payload() event: { data: EventMessage },
+  //   @Ctx() context: RmqContext,
+  // ) {
+  //   const channel = context.getChannelRef();
+  //   const originalMsg = context.getMessage();
+  //
+  //   try {
+  //     await this.messagesService.processDeadLetter(event.data);
+  //
+  //     channel.ack(originalMsg);
+  //   } catch (error) {
+  //     channel.nack(originalMsg, false, false);
+  //   }
+  // }
 }

@@ -21,6 +21,16 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
+  process.on('SIGINT', async () => {
+    await app.close();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', async () => {
+    await app.close();
+    process.exit(0);
+  });
+
   process.on('unhandledRejection', (reason) => {
     logger.error(
       'Unhandled Rejection at:',

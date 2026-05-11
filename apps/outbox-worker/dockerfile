@@ -1,0 +1,13 @@
+
+FROM node:22-alpine as builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build outbox-worker
+
+FROM node:22-alpine
+WORKDIR /app
+COPY --from=builder /app/dist/apps/outbox-worker ./dist
+COPY --from=builder /app/node_modules ./node_modules
+CMD ["node", "dist/main"]

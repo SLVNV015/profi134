@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { firstValueFrom, retry, timer } from 'rxjs';
-import { isNetworkError } from '@app/lib/utils/is-network-error';
 import { RABBITMQ_CLIENT } from './rmq.token';
 import { ClientProxy } from '@nestjs/microservices';
 
@@ -24,9 +23,9 @@ export class RmqProducer implements OnModuleInit {
           retry({
             count: 3,
             delay: (err, attmpt) => {
-              if (!isNetworkError(err)) {
-                throw err;
-              }
+              // if (!isNetworkError(err)) {
+              //   throw err;
+              // }
 
               const delay = Math.pow(2, attmpt) * 1000;
               this.logger.warn(
@@ -37,5 +36,9 @@ export class RmqProducer implements OnModuleInit {
           }),
         ),
     );
+  }
+
+  rawPublish(pattern: string, data: any) {
+    return this._client.emit(pattern, data);
   }
 }

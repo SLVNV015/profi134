@@ -1,4 +1,22 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_prof
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-profi134}
+    volumes:
+      - postgres_prof:/var/lib/postgresql/data
+      - ./migrations/001_create_outbox_table.up.sql:/docker-entrypoint-initdb.d/001_create_outbox_table.up.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq_prof
@@ -32,6 +50,8 @@ services:
     env_file:
       - .env
     depends_on:
+      postgres:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       redis:
@@ -44,11 +64,28 @@ services:
     env_file:
       - .env
     depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  worker:
+    build:
+      context: .
+      dockerfile: apps/outbox-worker/dockerfile
+    container_name: worker_prof
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_started
 
 volumes:
+  postgres_prof:
   rabbitmq_prof:
   redis_prof:
